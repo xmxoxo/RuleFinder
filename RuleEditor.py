@@ -86,16 +86,19 @@ def flask_server(args):
     @app.route('/api/v0.1/rule', methods=['GET','POST'])
     def rule():
         res = {}
+        res["result"] = "Error"
         print('current_rule_fileName:' , current_rule_fileName)
         myfinder = RuleFinder(configfile=current_rule_fileName)
         # 读取规则
         if request.method == 'GET':
             res['rule_file'] = current_rule_fileName
             res['rule'] = myfinder.getSubjectRule()
+            res["result"] = "OK"
             return jsonify(res)
 
         # 更新所有规则
         if request.method == 'POST':
+            print('正在更新全部规则...')
             txt = request.values['rule']
             if txt:
                 lstSubject, lstRule = myfinder.splitRule(txt)
@@ -104,10 +107,7 @@ def flask_server(args):
                     myfinder.setRule (lstRule)
                     myfinder.saveRule()
                     res["result"] = "OK"
-                else:
-                    res["result"] = "Error"
             return jsonify(res)
-            pass
 
     # 规则文件 current_rule_fileName
     @app.route('/api/v0.1/ruleFile', methods=['GET','POST'])

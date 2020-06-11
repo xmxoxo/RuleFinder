@@ -160,7 +160,7 @@ function UpdateAllRule(){
 		dt+= '\t[\n\t"' + dat[i][0] + '",\n\t"' + dat[i][1] + '"\n\t],\n';
 	}
 	dt +="]";
-	API("/api/v0.1/rule", "POST", {"rule": dt}, CheckRet() ); 
+	API("/api/v0.1/rule", "POST", {"rule": dt}, CheckRet); 
 }
 
 $(document).ready(function(){
