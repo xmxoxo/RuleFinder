@@ -1,0 +1,358 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+ <head>
+  <title>文本匹配工具_规则编辑器</title>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <meta name="author" content="xmxoxo">
+  <meta name="keywords" content="RuleEditor">
+  <meta name="description" content="https://github.com/xmxoxo/RuleFinder">
+
+<style>
+/*高亮*/
+b {color:red; }
+.bars{height:auto;width:50%; float:left;}
+pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; height:auto;}    
+.string { color: green; }  
+.number { color: darkorange; }
+.boolean { color: blue; }   
+.null { color: magenta; } 
+.key { color: red;} /*#4CAF50*/
+
+</style> 
+<link rel="stylesheet" href="static/css/nlp.css">
+<script src="static/js/jquery-2.1.4.min.js"></script>
+<script src="static/js/Table.js"></script>
+
+<SCRIPT LANGUAGE="JavaScript">
+<!--
+// 规则文件名
+var rule_filename;
+// 规则数据
+var rule_data;
+
+function UrlPOST(txt,myfun){
+	if (txt=="")
+	{
+		return "error parm"; 
+	}
+	var httpurl = "/api/v0.1/query"; 
+
+	$.ajax({
+			type: "POST",
+			data: {"text":txt},	
+			url: httpurl,
+			dataType:"json",
+			success: function(data)
+			{   
+				myfun(data);
+			}
+	});
+}
+
+function API(url, method, dat, myfun){
+	if (url =='' || method =='' || (method=='POST' && dat == null)) {
+		return false;
+	}
+	$.ajax({
+			type: method,
+			data: dat,
+			url: url,
+			dataType:"json",
+			success: function(data){   
+				myfun(data);
+			}
+	});
+}
+
+
+// 显示匹配结果
+function showresult(dat){
+	r = dat['result'];
+	//alert(r[0][3].replace(r[0][2], '<b>' + r[0][2] + '</b>'))
+	//高亮处理 
+	for(var i=0;i<r.length;i++){
+		r[i][3] = r[i][3].replace(r[i][2], '<b>' + r[i][2] + '</b>');
+	}
+	/*
+	c='共提取'+r.length+'条匹配:\n';
+	for(var i=0;i<r.length;i++){
+		c+= "第"+ (i+1) + "条:" + r[i] + "\n\n";
+	}
+	$("#result").html(c);
+	*/
+	Table().init({
+		id:'result_table',
+		header:['分类号','分类名称','匹配文本','原文'],
+		data: r
+	});
+
+}
+
+
+function getRule(){
+	$.ajax({
+			type: "GET",
+			//dataType: "text",
+			url: "/api/v0.1/rule",
+			success: function(dat)
+			{
+				//alert(dat);
+				dt = "[\n";
+				for(var i=0;i<dat.length;i++){
+					dt+= '\t[\n\t"' + dat[i][0] + '",\n\t"' + dat[i][1] + '"\n\t],\n';
+				}
+				dt +="]";
+				$("#rule-form").val(dt);
+			}
+	});
+}
+
+// 显示规则表
+function showRule(){
+	$.ajax({
+			type: "GET",
+			url: "/api/v0.1/rule",
+			dataType: 'json',
+			success: function(data)
+			{   
+				$("#r_filename").text(data['rule_file']);
+				rule_data = data['rule'];
+				
+				//添加 修改按键
+				tb_data = rule_data
+				for(var i=0;i<rule_data.length;i++){
+					btn = function(id,txt){return '<input type="button" value="'+txt+'" id="'+id+'" />'}
+					htm = btn('rule_modify',' 修改 ') + btn('rule_del',' 删除 ');
+					tb_data[i].push(htm);
+				}
+
+				Table().init({
+					id:'tb-rule',
+					header:['分类名称','匹配规则','  编辑 '],
+					data: tb_data
+				});
+			}
+	});
+	$("#rule_m").attr("style","display:none;"); 
+	$("#rule_s").attr("style","display:block;");
+}
+
+function CheckRet(data){
+	ret = data['result'];
+	/*
+	if (data['rule_file'] != ''){
+		// 显示
+		$("#r_filename").text(data['rule_file']);
+	}
+	*/
+	if (ret=='OK'){
+		showRule();
+		alert('操作成功！');
+	}
+	if (ret=='Error'){alert('操作失败！');}
+}
+
+//提交全部规则进行更新
+function UpdateAllRule(){
+	dat = rule_data;
+	dt = "[\n";
+	for(var i=0;i<dat.length;i++){
+		dt+= '\t[\n\t"' + dat[i][0] + '",\n\t"' + dat[i][1] + '"\n\t],\n';
+	}
+	dt +="]";
+	API("/api/v0.1/rule", "POST", {"rule": dt}, CheckRet() ); 
+}
+
+$(document).ready(function(){
+	showRule();
+	// 加载规则文件
+	$("#bt_Load").click(function() {
+		rulefilename = prompt("请输入规则文件名(不存在时自动新建):","");
+		if (rulefilename != null && rulefilename != ""){
+			//alert("正在加载规则文件：" + rulefilename );
+			// 加载规则文件 /api/v0.1/ruleFile
+			API("/api/v0.1/ruleFile", "POST",
+				{"rule_file": rulefilename}, CheckRet); 
+		}
+	}); 
+
+	// 新建规则文件 
+	$("#bt_New").click(function() {
+		rulefilename = prompt("请输入规则文件名:","");
+		if (rulefilename != null && rulefilename != ""){
+			alert("正在新建规则：" + rulefilename );
+		}
+	}); 
+
+	//添加规则
+	$("#bt_Add").click(function() {
+		i = -1;
+		$("#r_id_txt").text(i);
+		$("#r_id").val(i);
+		$("#r_class").val("");
+		$("#r_rule").val("");
+		//显示表单
+		$("#rule_m").attr("style","display:block;");
+		$("#rule_s").attr("style","display:none;");
+
+	}); 
+
+
+	//取消提交 
+	$("#bt_cancel").click(function() {
+		$("#rule_m").attr("style","display:none;"); 
+		$("#rule_s").attr("style","display:block;");
+	}); 
+
+	// 提交修改规则表单
+	$("#bt_update").click(function() {
+		//内容不能为空
+		c = $("#r_class").val();
+		r = $("#r_rule").val();
+		if (!c || !r){
+			alert('请输入内容!');
+			return false;
+		}
+		API("/api/v0.1/rule_single", "POST",
+			{"id":$("#r_id").val(),
+					"class":c,
+					"rule":r,
+					},
+			CheckRet); 
+	});
+
+
+	// 提交匹配查询 
+	$("#bt_submit").click(function() {  
+		var txt = $("#txt").val();
+		if (txt=="")
+		{ return; }
+		var voc = ""; 
+		voc = UrlPOST(txt, showresult); 
+	}); 
+	
+	//编辑规则  后绑定事件
+	$("#tb-rule").on('click', '#rule_modify', function() {
+		p = $(this).parent().parent();
+		i = p.index()-1;
+		c = p.children()[0].innerText;
+		r = p.children()[1].innerText;
+		$("#r_id_txt").text(i);
+		$("#r_id").val(i);
+		$("#r_class").val(c);
+		$("#r_rule").val(r);
+		//显示编辑表单
+		$("#rule_m").attr("style","display:block;");
+		$("#rule_s").attr("style","display:none;");
+
+	}); 
+
+
+	//删除规则
+	$("#tb-rule").on('click', '#rule_del', function() {
+		p = $(this).parent().parent();
+		i = p.index()-1;
+		c = p.children()[0].innerText;
+		r = p.children()[1].innerText;
+		txt = '序号:' + i + '\n分类名称：' + c + '\n匹配规则:' + r
+		con=confirm("确定要删除以下记录? 删除后无法撤消!\n" + txt)
+		if (con){
+			//删除
+			rule_data.splice(i, 1);
+			//提交 
+			UpdateAllRule();
+		}
+	}); 
+});
+
+
+//-->
+</SCRIPT>
+
+ </head>
+
+<body class="ai-platform">
+<div class="nlp-word">
+	<div class="word-head">文本匹配工具 规则编辑器　版本: {{ version }}</div>
+
+	<div class="word-form-left">
+		<div class="com-text-cover">
+			<div class="mid-down-title" height="">
+				<span class="down-title-des">匹配规则说明：</span>
+			</div>
+			<div id="111" class="com-txt" style="overflow-x:hidden;overflow-y:auto;">
+				<span class="">匹配规则标准：包含中括号("[]") 、尖括号("&lt;&gt;") 和竖线("|")，任意字符("**"),文字字符("??"),非空字符("++"),等元素<br/>
+					<UL>
+						<LI>中括号[]代表其中的内容是<B>可选</B>的，比如"不[得]"，能匹配"不"和"不得"；
+						<LI>尖括号&lt;&gt;代表其中的内容是<B>必选</B>的，比如"&lt;经&gt;营"， 能匹配"经营"；
+						<LI>竖线代表<B>或</B>的关系，即竖线分隔的内容是可替换的，比如"&lt;注册|成立&gt;时间"能匹配"注册时间"和"成立时间";
+						<LI>括号是可以嵌套的；例如 “不[得<少|小>于]”，能匹配"不"和"不得少于”，“不得小于”
+						<LI>"[稳定|正常]运营"能匹配"稳定运营"，“正常运营"和"运营”；
+						<LI>竖线在其所属的括号内，优先级大于括号中的其他括号，比如"&lt;注册[登记]|成立&gt;时间"，能匹配"注册时间"，“注册登记时间”和“成立时间”；
+						<LI>竖线可以脱离括号独立存在，比如"在哪里|哪里有"，可以匹配"在哪里"和"哪里有"；
+					</UL>
+				</span>
+			</div>
+		</div>
+	</div>
+	<!-- 规则列表 -->
+	<div class="word-form-left">
+		<div class="com-text-cover">
+			<div class="mid-down-title" height="">
+				<span class="down-title-des">当前规则文件：</span>
+				<span id="r_filename">rule.txt</span>
+				<input type="button" value=" 加载规则文件 " id="bt_Load" />
+				<!-- <input type="button" value=" 新建规则文件 " id="bt_New" /> -->
+				<input type="button" value=" 添加规则 " id="bt_Add" />
+			</div>
+			<!-- 编辑表单 -->
+			<div id="rule_m" class="com-txt" style="display:none;overflow-x:hidden;overflow-y:auto;" >
+				<span style="line-height: 35px;">
+				<span>分类序号: </span><span id="r_id_txt">0</span><br/>
+				<span>分类名称：</span><input type="text" id="r_class" name="class" /><br/>
+				<span>匹配规则：</span><textarea name="rule" id="r_rule" style="margin: 0px; width: 550px; height: 50px;"></textarea><br/>
+				<input type="button" value=" 提交更新 " id="bt_update" />&nbsp;
+				<input type="button" value=" 取消更新 " id="bt_cancel" />
+				<input type="hidden" id="r_id" name="id" />
+				<!-- 
+				<input type="text" id="r_rule" name="rule" style="width:400px;" />
+				
+				<textarea name="rule" id="rule-form1" style="margin: 0px; width: 558px; height: 158px;"></textarea> -->
+				</span>
+			</div>
+			<div id="rule_s" class="" style="display:block;">
+				<div id="tb-rule" class="com-txt" style="overflow-x:hidden;overflow-y:auto;"></div>
+			</div>
+			
+		</div>
+	</div>
+	<!-- 文本 -->
+	<div class="word-form">
+		<div class="com-text-cover">
+			<div class="mid-down-title">
+				<span class="down-title-des">请输入待分析的文本：</span>
+			</div>
+			<textarea name="txt" id="txt" spellcheck="false" maxlength="" class="com-txt" onfocus="this.select()">{{ test_text }}</textarea>
+		</div>
+	</div>
+	<div class="result-cover">
+			<div class="result-left-title">处理结果：
+			<input type="button" value=" 提交 " id="bt_submit" />
+			</div>
+			<div id="result_table"></div>
+			<br/>
+			<br/>
+			<br/>
+	</div>
+	<div style="width:1180px;text-align: center;font-size:16px;float:left">
+		<br/>
+		<br/>
+		All Rights Reserved --  Copy Right 
+		<a href="https://github.com/xmxoxo/RuleFinder" target="_blank">RuleFinder</A> 
+		<br/>
+		<br/>
+	</div>
+
+  </div>
+ </body>
+</html>

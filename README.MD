@@ -1,0 +1,96 @@
+# 文本匹配工具
+
+当前版本号：0.1.10
+update: 2020/6/11
+
+RuleFinder 文本匹配工具是一个用于快速编写匹配规则，提取文本的工具。
+本工具包括：类库，规则编辑器，批量提取器。
+RuleLib.py	类库，可自行引用到项目中使用；
+RuleEditor.py	规则编辑器，基于flask的WEB应用，可在浏览器中编辑规则；
+RulePicker.py	规则提取器，可加载规则后从批量文件中提取匹配结果；
+
+
+## 使用案例
+0. 安装依赖包
+```
+pip install -r requirements.txt
+```
+
+
+1. 启动规则编辑器
+运行以下命令，使用默认参数启动启动规则编辑器：
+
+```
+python RuleEditor.py  
+```
+
+详细参数可见：
+```
+python RuleEditor.py  -h
+```
+
+默认启动时监听`0.0.0.0:8910` 端口
+默认加载规则文件为:`./rules/rule.txt`
+默认加载数据文件为： `./test/test.txt`
+
+2. 访问规则编辑器
+
+使用浏览器打开以下地址访问规则编辑器：`http://127.0.0.1:8910`
+
+浏览器界面如下：
+![规则编辑器运行图][1]
+
+  [1]: ./images/cap_v0.1.10.png
+
+在浏览器界面中可以完成：
+
+* 规则文件加载；
+* 规则文件新建；
+* 规则添加、删除、编辑；
+* 对数据文件测试当前规则文件所有规则；
+
+3. 使用规则提取器
+
+完成规则编辑后，可以使用规则提取器，对整个目录下的文件批量提取结果。
+
+运行以下命令可运行demo:
+```
+python RulePicker.py -rule ./rules/rule.txt 
+```
+
+运行示例如下：
+```
+13:36:55.38|F:>python RulePicker.py -rule ./rules/rule.txt
+正在批量处理，请稍候...
+正在匹配文件：./test/test.txt
+正在匹配文件：./test/test1.txt
+正在匹配文件：./test/test2.txt
+保存结果:./output/result_20200611134436.csv
+匹配用时: 0.03秒
+匹配结果共3个文件:
+=====文件:test 匹配:5条=====
+=====文件:test1 匹配:1条=====
+=====文件:test2 匹配:2条=====
+```
+
+
+详细参数运行以下命令查看：
+```
+python RulePicker.py -h
+```
+
+参数如下:
+```
+12:01:36.57|F:>RulePicker.py -h
+usage: RulePicker.py [-h] -rule RULE [-data DATA] [-output OUTPUT]
+
+RulePicker v_0.1.10 by xmxoxo
+
+optional arguments:
+  -h, --help      show this help message and exit
+  -rule RULE      rule file
+  -data DATA      data file path, default: ./test/
+  -output OUTPUT  output path, default: ./output/
+```
+
+
