@@ -281,7 +281,9 @@ $(document).ready(function(){
 				<span class="down-title-des">匹配规则说明：</span>
 			</div>
 			<div id="111" class="com-txt" style="overflow-x:hidden;overflow-y:auto;">
-				<span class="">匹配规则标准：包含中括号("[]") 、尖括号("&lt;&gt;") 和竖线("|")，任意字符("**"),文字字符("??"),非空字符("++"),等元素<br/>
+				<span class="">匹配规则标准：包含以下元素：<br/>
+					中括号("[]") 、尖括号("&lt;&gt;") 、竖线("|")<br/>
+					任意字符("**")、文字字符("??")、非空字符("++")<br/>
 					<UL>
 						<LI>中括号[]代表其中的内容是<B>可选</B>的，比如"不[得]"，能匹配"不"和"不得"；
 						<LI>尖括号&lt;&gt;代表其中的内容是<B>必选</B>的，比如"&lt;经&gt;营"， 能匹配"经营"；
