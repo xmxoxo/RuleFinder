@@ -5,40 +5,52 @@ __author__ = 'xmxoxo<xmxoxo@qq.com>'
 
 '''
 文本匹配工具  规则编辑器
-版本： v0.1.10
+版本： v0.1.12
 '''
 
 import argparse
 import time
 from RuleLib import *
 
-from flask import Flask,request,render_template,jsonify
+from flask import Flask,request,render_template,jsonify,session
 from flask_restful import Resource, Api
 
-current_rule_fileName = ''
 
 #HTTP server
 def flask_server(args):
-    global current_rule_fileName
     app = Flask(__name__)
-    version = 'V 0.1.10'
+    app.config['SECRET_KEY'] = os.urandom(24)
+
+    version = 'V 0.1.12'
     current_rule_fileName = args.rule_file
-    test_file = args.test_file
+    dat_file = args.dat_file
 
     @app.route('/')
     def index():
-        test_text = RuleFinder.readtxtfile(test_file)
-        return render_template('index.html', version=version, test_text=test_text )
+        dat_file = session.get('dat_file', None)
+        if not dat_file:
+            dat_file = args.dat_file
+            session['dat_file'] = dat_file
+
+        current_rule_fileName = session.get('rule_file', None)
+        if not current_rule_fileName:
+            current_rule_fileName = args.rule_file
+            session['rule_file'] = current_rule_fileName
+
+        test_text = RuleFinder.readtxtfile(dat_file)
+        return render_template('index.html', version=version, dat_file=dat_file, test_text=test_text )
   
-    # 匹配
+    # 查询匹配结果
     @app.route('/api/v0.1/query', methods=['POST'])
     def query ():
         res = {}
         txt = request.values['text']
+        current_rule_fileName = session.get('rule_file', args.rule_file)
         if not txt :
             res["result"]="error"
             return jsonify(res)
         if request.method == 'POST':
+            print('current_rule_fileName:', current_rule_fileName)
             myfinder = RuleFinder(configfile=current_rule_fileName, debug=1)
             lstseg = myfinder.findKey(txt)
             res['result'] = lstseg
@@ -83,11 +95,13 @@ def flask_server(args):
             return jsonify(res)
             pass
 
+    # 规则操作，CRUD
     @app.route('/api/v0.1/rule', methods=['GET','POST'])
     def rule():
         res = {}
         res["result"] = "Error"
-        print('current_rule_fileName:' , current_rule_fileName)
+        current_rule_fileName = session.get('rule_file', args.rule_file)
+        print('/api/v0.1/rule current_rule_fileName:' , current_rule_fileName)
         myfinder = RuleFinder(configfile=current_rule_fileName)
         # 读取规则
         if request.method == 'GET':
@@ -109,10 +123,30 @@ def flask_server(args):
                     res["result"] = "OK"
             return jsonify(res)
 
-    # 规则文件 current_rule_fileName
+    # 读取数据文件 
+    @app.route('/api/v0.1/datfile', methods=['GET','POST'])
+    def datfile():
+        res = {}
+        res["result"] = "Error"
+        if request.method == 'POST':
+            nfile = request.values['dat_file']
+            test_text = RuleFinder.readtxtfile(nfile)
+            if test_text:
+                # 保存数据文件名：如果需要所有用户同步变化则使用args.dat_file修改
+                #args.dat_file = nfile
+                session['dat_file'] = nfile
+
+                res["dat_file"] = nfile
+                res["dat"] = test_text
+                res["result"] = "OK"
+        
+        return jsonify(res)
+
+    # 规则文件 
     @app.route('/api/v0.1/ruleFile', methods=['GET','POST'])
     def ruleFile():
-        global current_rule_fileName
+        #global current_rule_fileName
+        current_rule_fileName = session.get('rule_file', args.rule_file)
         res = {}
         if request.method == 'GET':
             res['rule_file'] = current_rule_fileName
@@ -122,6 +156,7 @@ def flask_server(args):
             nfile = request.values['rule_file']
             if nfile:
                 current_rule_fileName = nfile
+                session['rule_file'] = current_rule_fileName
                 res['rule_file'] = current_rule_fileName
                 res["result"] = "OK"
             else:
@@ -142,7 +177,7 @@ def main_cli ():
     parser.add_argument('-ip', type=str, default="0.0.0.0", help='IP address')
     parser.add_argument('-port', type=int, default=8910, help='listen port,default:8910')
     parser.add_argument('-rule_file', type=str, default='./rules/rule.txt', help='rules file name')
-    parser.add_argument('-test_file', type=str, default='./test/test.txt', help='test dat file name')
+    parser.add_argument('-dat_file', type=str, default='./test/test.txt', help='test dat file name')
     args = parser.parse_args()
 
     flask_server(args)

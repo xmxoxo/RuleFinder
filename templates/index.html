@@ -17,6 +17,7 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; height:auto;}
 .boolean { color: blue; }   
 .null { color: magenta; } 
 .key { color: red;} /*#4CAF50*/
+.htxt {color:#4CAF50; }
 
 </style> 
 <link rel="stylesheet" href="static/css/nlp.css">
@@ -29,25 +30,8 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; height:auto;}
 var rule_filename;
 // 规则数据
 var rule_data;
-
-function UrlPOST(txt,myfun){
-	if (txt=="")
-	{
-		return "error parm"; 
-	}
-	var httpurl = "/api/v0.1/query"; 
-
-	$.ajax({
-			type: "POST",
-			data: {"text":txt},	
-			url: httpurl,
-			dataType:"json",
-			success: function(data)
-			{   
-				myfun(data);
-			}
-	});
-}
+// 数据文件名
+var data_filename = '{{ dat_file }}';
 
 function API(url, method, dat, myfun){
 	if (url =='' || method =='' || (method=='POST' && dat == null)) {
@@ -73,13 +57,6 @@ function showresult(dat){
 	for(var i=0;i<r.length;i++){
 		r[i][3] = r[i][3].replace(r[i][2], '<b>' + r[i][2] + '</b>');
 	}
-	/*
-	c='共提取'+r.length+'条匹配:\n';
-	for(var i=0;i<r.length;i++){
-		c+= "第"+ (i+1) + "条:" + r[i] + "\n\n";
-	}
-	$("#result").html(c);
-	*/
 	Table().init({
 		id:'result_table',
 		header:['分类号','分类名称','匹配文本','原文'],
@@ -115,7 +92,8 @@ function showRule(){
 			dataType: 'json',
 			success: function(data)
 			{   
-				$("#r_filename").text(data['rule_file']);
+				rule_filename = data['rule_file'];
+				$("#r_filename").text(rule_filename);
 				rule_data = data['rule'];
 				
 				//添加 修改按键
@@ -139,12 +117,6 @@ function showRule(){
 
 function CheckRet(data){
 	ret = data['result'];
-	/*
-	if (data['rule_file'] != ''){
-		// 显示
-		$("#r_filename").text(data['rule_file']);
-	}
-	*/
 	if (ret=='OK'){
 		showRule();
 		alert('操作成功！');
@@ -167,20 +139,12 @@ $(document).ready(function(){
 	showRule();
 	// 加载规则文件
 	$("#bt_Load").click(function() {
-		rulefilename = prompt("请输入规则文件名(不存在时自动新建):","");
+		rulefilename = prompt("请输入规则文件名(不存在时自动新建):", rule_filename);
 		if (rulefilename != null && rulefilename != ""){
 			//alert("正在加载规则文件：" + rulefilename );
 			// 加载规则文件 /api/v0.1/ruleFile
 			API("/api/v0.1/ruleFile", "POST",
 				{"rule_file": rulefilename}, CheckRet); 
-		}
-	}); 
-
-	// 新建规则文件 
-	$("#bt_New").click(function() {
-		rulefilename = prompt("请输入规则文件名:","");
-		if (rulefilename != null && rulefilename != ""){
-			alert("正在新建规则：" + rulefilename );
 		}
 	}); 
 
@@ -225,10 +189,8 @@ $(document).ready(function(){
 	// 提交匹配查询 
 	$("#bt_submit").click(function() {  
 		var txt = $("#txt").val();
-		if (txt=="")
-		{ return; }
-		var voc = ""; 
-		voc = UrlPOST(txt, showresult); 
+		if (txt==""){return;}
+		API("/api/v0.1/query", "POST", {"text":txt}, showresult);
 	}); 
 	
 	//编辑规则  后绑定事件
@@ -263,6 +225,26 @@ $(document).ready(function(){
 			UpdateAllRule();
 		}
 	}); 
+
+	//加载服务端数据文件 
+	$("#bt_loadtxt").click(function() {
+		filename = prompt("请输入文件名:", data_filename);
+		if (filename != null && filename != ""){
+			API("/api/v0.1/datfile", "POST",
+				{"dat_file": filename},
+				function(data){
+					data_filename = data['dat_file']
+					$("#txt_dataname").text(data['dat_file']);
+					$("#txt").val(data['dat']);
+				}); 
+		}
+	}); 
+	//全选
+	$("#bt_selall").click(function() {
+		$("#txt").select();
+	}); 
+
+
 });
 
 
@@ -302,9 +284,8 @@ $(document).ready(function(){
 		<div class="com-text-cover">
 			<div class="mid-down-title" height="">
 				<span class="down-title-des">当前规则文件：</span>
-				<span id="r_filename">rule.txt</span>
+				[<span id="r_filename">./rule/rule.txt</span>]
 				<input type="button" value=" 加载规则文件 " id="bt_Load" />
-				<!-- <input type="button" value=" 新建规则文件 " id="bt_New" /> -->
 				<input type="button" value=" 添加规则 " id="bt_Add" />
 			</div>
 			<!-- 编辑表单 -->
@@ -332,9 +313,14 @@ $(document).ready(function(){
 	<div class="word-form">
 		<div class="com-text-cover">
 			<div class="mid-down-title">
-				<span class="down-title-des">请输入待分析的文本：</span>
+				<span class="down-title-des">请输入待分析的文本：&nbsp;&nbsp;</span> 
+				<span class="">[当前文件:&nbsp; 
+					<span class="htxt" id="txt_dataname">{{ dat_file }}</span>]</span>
+				<input type="button" value="加载分析文件" id="bt_loadtxt" />
+				<input type="button" value=" 全选 " id="bt_selall" />
 			</div>
-			<textarea name="txt" id="txt" spellcheck="false" maxlength="" class="com-txt" onfocus="this.select()">{{ test_text }}</textarea>
+			<!-- onfocus="this.select()" -->
+			<textarea name="txt" id="txt" spellcheck="false" maxlength="" class="com-txt" >{{ test_text }}</textarea>
 		</div>
 	</div>
 	<div class="result-cover">

@@ -107,11 +107,11 @@ class RuleFinder():
             # reg = reg.replace('??','(?:.)')
             # 2020/4/30 文字字符规则"??"含义限制为中文汉字
             # reg = reg.replace('??','(?:[^，；;。‘’"“”]*?)')
-            reg = reg.replace('??','(?:[\u4E00-\u9FA5]*?)')
+            reg = reg.replace('??',r'(?:[\u4E00-\u9FA5]*?)')
             
             # "++" 表示非空字符
             #reg = reg.replace('++','(?:.+)')
-            reg = reg.replace('++','(?:[^，；;。‘’"“”]+?)')
+            reg = reg.replace('++',r'(?:[^，　； ;。‘’"“”]+?)')
 
             # "**" 表示任意字符，可为空
             #reg = reg.replace('**','(?:.*?)')
