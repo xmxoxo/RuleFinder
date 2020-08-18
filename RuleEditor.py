@@ -5,7 +5,7 @@ __author__ = 'xmxoxo<xmxoxo@qq.com>'
 
 '''
 文本匹配工具  规则编辑器
-版本： v0.1.12
+版本： v0.1.13
 '''
 
 import argparse
@@ -21,7 +21,7 @@ def flask_server(args):
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.urandom(24)
 
-    version = 'V 0.1.12'
+    version = 'V 0.1.13'
     current_rule_fileName = args.rule_file
     dat_file = args.dat_file
 
@@ -123,17 +123,32 @@ def flask_server(args):
                     res["result"] = "OK"
             return jsonify(res)
 
-    # 读取数据文件 
+    # 加载数据文件 
     @app.route('/api/v0.1/datfile', methods=['GET','POST'])
     def datfile():
         res = {}
         res["result"] = "Error"
+        # 2020/8/18 POST方法 表示保存数据
         if request.method == 'POST':
+            pass
+            nfile = request.values['dat_file']
+            txt = request.values['text']
+            # 保存数据文件
+            ret = RuleFinder.savetofile(txt, nfile)
+            if ret:
+                session['dat_file'] = nfile
+                res["dat_file"] = nfile
+                res["result"] = "OK"
+            else: 
+                res["result"] = "Error"
+            
+        # GET方法表示加载数据
+        if request.method == 'GET':
             nfile = request.values['dat_file']
             test_text = RuleFinder.readtxtfile(nfile)
             if test_text:
                 # 保存数据文件名：如果需要所有用户同步变化则使用args.dat_file修改
-                #args.dat_file = nfile
+                # args.dat_file = nfile
                 session['dat_file'] = nfile
 
                 res["dat_file"] = nfile
@@ -152,6 +167,7 @@ def flask_server(args):
             res['rule_file'] = current_rule_fileName
             res["result"] = "OK"
             return jsonify(res)
+        
         if request.method == 'POST':
             nfile = request.values['rule_file']
             if nfile:

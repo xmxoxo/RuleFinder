@@ -230,20 +230,40 @@ $(document).ready(function(){
 	$("#bt_loadtxt").click(function() {
 		filename = prompt("请输入文件名:", data_filename);
 		if (filename != null && filename != ""){
-			API("/api/v0.1/datfile", "POST",
+			API("/api/v0.1/datfile", "GET",
 				{"dat_file": filename},
 				function(data){
 					data_filename = data['dat_file']
 					$("#txt_dataname").text(data['dat_file']);
 					$("#txt").val(data['dat']);
+					$("#result_table").text("");
 				}); 
 		}
 	}); 
+
 	//全选
 	$("#bt_selall").click(function() {
 		$("#txt").select();
 	}); 
 
+	// 保存数据文件
+	$("#bt_savedat").click(function() {
+		filename = prompt("保存文件名:", data_filename);
+		if (filename != null && filename != ""){
+			var txt = $("#txt").val();
+			if (txt==""){return;}
+			API("/api/v0.1/datfile", "POST", {"text":txt, "dat_file":filename}, 
+				function(data){
+					ret = data['result']
+					if (ret=='OK'){
+						data_filename = data['dat_file']
+						$("#txt_dataname").text(data['dat_file']);
+						alert('数据文件保存成功！');
+					}
+					if (ret=='Error'){alert('数据文件保存失败！');}
+				}); 
+		}
+	}); 
 
 });
 
@@ -316,8 +336,9 @@ $(document).ready(function(){
 				<span class="down-title-des">请输入待分析的文本：&nbsp;&nbsp;</span> 
 				<span class="">[当前文件:&nbsp; 
 					<span class="htxt" id="txt_dataname">{{ dat_file }}</span>]</span>
-				<input type="button" value="加载分析文件" id="bt_loadtxt" />
+				<input type="button" value="加载数据文件" id="bt_loadtxt" />
 				<input type="button" value=" 全选 " id="bt_selall" />
+				<input type="button" value=" 保 存 " id="bt_savedat" />
 			</div>
 			<!-- onfocus="this.select()" -->
 			<textarea name="txt" id="txt" spellcheck="false" maxlength="" class="com-txt" >{{ test_text }}</textarea>
